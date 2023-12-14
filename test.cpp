@@ -6,7 +6,7 @@
 using namespace std;
 using namespace cv;
 
-static std::string prefix = "/home/meiqua/shape_based_matching/test/";
+static std::string prefix = "../test/";
 
 class Timer
 {
@@ -220,14 +220,14 @@ void scale_test(string mode = "test"){
     }
 }
 
-void angle_test(string mode = "test", bool use_rot = true){
+void angle_test(string mode = "test", string folder = "case1", bool use_rot = true){
     line2Dup::Detector detector(128, {4, 8});
 
     if(mode != "test"){
-        Mat img = imread(prefix+"case1/train.png");
+        Mat img = imread(prefix+folder+"/train.png");
         assert(!img.empty() && "check your img path");
 
-        Rect roi(130, 110, 270, 270);
+        Rect roi(0, 0, img.size().width, img.size().height);
         img = img(roi).clone();
         Mat mask = Mat(img.size(), CV_8UC1, {255});
 
@@ -288,18 +288,18 @@ void angle_test(string mode = "test", bool use_rot = true){
                 infos_have_templ.push_back(info);
             }
         }
-        detector.writeClasses(prefix+"case1/%s_templ.yaml");
-        shapes.save_infos(infos_have_templ, prefix + "case1/test_info.yaml");
+        detector.writeClasses(prefix+folder+"/%s_templ.yaml");
+        shapes.save_infos(infos_have_templ, prefix + folder+"/test_info.yaml");
         std::cout << "train end" << std::endl << std::endl;
     }else if(mode=="test"){
         std::vector<std::string> ids;
         ids.push_back("test");
-        detector.readClasses(ids, prefix+"case1/%s_templ.yaml");
+        detector.readClasses(ids, prefix+folder+"/%s_templ.yaml");
 
         // angle & scale are saved here, fetched by match id
-        auto infos = shape_based_matching::shapeInfo_producer::load_infos(prefix + "case1/test_info.yaml");
+        auto infos = shape_based_matching::shapeInfo_producer::load_infos(prefix + folder+"/test_info.yaml");
 
-        Mat test_img = imread(prefix+"case1/test.png");
+        Mat test_img = imread(prefix+folder+"/test.png");
         assert(!test_img.empty() && "check your img path");
 
         int padding = 250;
@@ -319,13 +319,13 @@ void angle_test(string mode = "test", bool use_rot = true){
         std::cout << "test img size: " << img.rows * img.cols << std::endl << std::endl;
 
         Timer timer;
-        auto matches = detector.match(img, 90, ids);
+        auto matches = detector.match(img, 80, ids);
         timer.out();
 
-        if(img.channels() == 1) cvtColor(img, img, CV_GRAY2BGR);
+        if(img.channels() == 1) cvtColor(img, img, cv::COLOR_GRAY2BGR);
 
         std::cout << "matches.size(): " << matches.size() << std::endl;
-        size_t top5 = 1;
+        size_t top5 = 20;
         if(top5>matches.size()) top5=matches.size();
         for(size_t i=0; i<top5; i++){
             auto match = matches[i];
@@ -371,7 +371,8 @@ void angle_test(string mode = "test", bool use_rot = true){
             std::cout << "\nmatch.template_id: " << match.template_id << std::endl;
             std::cout << "match.similarity: " << match.similarity << std::endl;
         }
-
+        resize(img, img, Size(img.cols/4, img.rows/4)); // to half size or even smaller
+        namedWindow( "img", WINDOW_AUTOSIZE);
         imshow("img", img);
         waitKey(0);
 
@@ -508,7 +509,7 @@ void MIPP_test(){
 
 int main(){
     // scale_test("test");
-    angle_test("test", true); // test or train
+    angle_test("test", "case3", true); // test or train
     // noise_test("test");
     return 0;
 }
